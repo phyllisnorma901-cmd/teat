@@ -14,7 +14,9 @@ export async function POST(request: Request) {
   }
   const session = await createSession(parsed.data.email);
   if (!session) {
-    return NextResponse.json({ error: "ユーザーが見つかりません" }, { status: 404 });
+    return NextResponse.json({ ok: true }, { status: 200 });
+  } catch (err: any) {
+    // ← 失敗時も必ずJSONを返す
+    return NextResponse.json({ error: err?.message || "login failed" }, { status: 400 });
   }
-  return NextResponse.json({ message: "ログインしました", user: session });
 }
