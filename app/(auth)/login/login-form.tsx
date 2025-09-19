@@ -19,27 +19,67 @@ export default function LoginForm({ user }: LoginFormProps) {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
     setLoading(true);
-    const response = await fetch("/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email })
-    });
-    const data = await response.json();
-    setLoading(false);
-    if (!response.ok) {
-      notify({ title: data.error || "ログインに失敗しました", variant: "destructive" });
-      return;
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      // 空ボディでも落ちないように安全にパース
+      let data: any = null;
+      const text = await res.text();
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          // サーバがJSON以外を返しても無視
+        }
+      }
+
+      if (!res.ok) {
+        notify({
+          title: (data && (data.error || data.message)) || "ログインに失敗しました",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      notify({ title: "ログインしました" });
+      setEmail("");
+
+      // 役割が返っていれば適切な画面へ。なければ従業員画面にフォールバック
+      const role: string | undefined =
+        data?.role || data?.user?.role || (email === "admin@example.com" ? "ADMIN" : undefined);
+
+      if (role === "ADMIN") {
+        router.push("/admin");
+      } else {
+        router.push("/request");
+      }
+    } catch (err: any) {
+      notify({
+        title: "通信エラーが発生しました",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+      // サーバ側の状態を反映
+      router.refresh();
     }
-    notify({ title: "ログインしました" });
-    setEmail("");
-    router.refresh();
   };
 
   const handleLogout = async () => {
-    await fetch("/api/logout", { method: "POST" });
-    notify({ title: "ログアウトしました" });
-    router.refresh();
+    try {
+      await fetch("/api/logout", { method: "POST" });
+      notify({ title: "ログアウトしました" });
+    } catch {
+      notify({ title: "ログアウトに失敗しました", variant: "destructive" });
+    } finally {
+      router.refresh();
+    }
   };
 
   return (
