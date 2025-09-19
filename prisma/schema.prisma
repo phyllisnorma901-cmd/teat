@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EmployeeRole {
+  EMPLOYEE
+  ADMIN
+}
+
+enum TimeOffType {
+  VACATION
+  PERSONAL
+  SICK
+}
+
+enum TimeOffRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Employee {
+  id              String            @id @default(cuid())
+  name            String
+  email           String            @unique
+  role            EmployeeRole      @default(EMPLOYEE)
+  timeOffRequests TimeOffRequest[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model TimeOffRequest {
+  id         String                  @id @default(cuid())
+  employee   Employee                @relation(fields: [employeeId], references: [id])
+  employeeId String
+  startDate  DateTime
+  endDate    DateTime
+  type       TimeOffType
+  reason     String?
+  weight     Int                     @default(10)
+  status     TimeOffRequestStatus    @default(PENDING)
+  createdAt  DateTime                @default(now())
+  updatedAt  DateTime                @updatedAt
+}
